@@ -6,12 +6,7 @@
 #include "shift_type.h"
 #include "schedule_config.h"
 
-// GA 실행 결과를 담을 구조체 (예시)
-typedef struct
-{
-  Schedule best_schedule;
-} GaResult;
-
+// Schedule 구조체 정의를 앞으로 이동
 typedef struct
 {
   ShiftType schedule[35];
@@ -19,6 +14,12 @@ typedef struct
 
   double fitness;
 } Schedule;
+
+// GA 실행 결과를 담을 구조체 (예시)
+typedef struct
+{
+  Schedule best_schedule;
+} GaResult;
 
 typedef double (*FitnessFunc)(Schedule *schedule, const ScheduleConfig *config);
 

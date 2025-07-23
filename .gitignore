@@ -1,0 +1,6 @@
+# Build output
+build/
+
+# Executables and debug symbols
+FairScheduler
+FairScheduler.dSYM/

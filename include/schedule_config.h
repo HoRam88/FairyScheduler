@@ -15,5 +15,6 @@ typedef struct
 
 // 외부에 공개할 함수 선언
 int get_days_in_month(int year, int month);
+ScheduleConfig *init_schedule_config(int year, int month, int num_employees);
 
 #endif

@@ -1,22 +1,18 @@
-// tasks.json
 {
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build Project (clang)",
+      "label": "Build Project (CMake)",
       "type": "shell",
-      "command": "clang",
-      "args": [
-        "-g",
-        "-Iinclude",
-        "src/main.c",
-        "src/mock_data.c", //임시 목업 데이터
-        "src/ga_engine.c", //유전자 알고리즘 엔진
-        "src/shift_type.c", //근무표 형태 struct 정의 
-        "-o",
-        "FairScheduler"
-      ],
-      // ... (나머지 부분은 동일)
+      "command": "cmake .. && make",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
     }
   ]
 }
