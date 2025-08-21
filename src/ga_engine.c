@@ -78,33 +78,58 @@ void free_population_memeory(Schedule **population_ptr, const ScheduleConfig *co
   *population_ptr = NULL;
 }
 
-// 미완성
-double fitness_check(Schedule *population, const ScheduleConfig *config)
+// 각 근무표의 적합도를 계산하는 함수
+double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
-  // 적합도는 감점식으로 평가하며, 조건에 맞지 않을경우 점수를 뺀다.
   double score = 10000.0;
-  int idx_end = config->num_days;
 
-  // 근무표 시작일부터 말일까지 순회.
-  for (int i = 0; i < idx_end; i++)
+  // day를 기준으로 순회
+  for (int day = 0; day < config->num_days; day++)
   {
-    int temp[4];
+    int daily_shift_counts[4] = {0}; // {DAY, EVENING, NIGHT, OFF} 카운터
 
-    // 해당 날짜의 모든 근무자의 근무정보(아침, 주간, 저녁, 휴무) 저장.
-    for (int j = 0; j < config->num_employees; j++)
+    // 그날의 모든 직원을 순회
+    for (int emp = 0; emp < config->num_employees; emp++)
     {
-      temp[population->schedule[i + j]]++;
+      int current_idx = day * config->num_employees + emp;
+      ShiftType current_shift = schedule[current_idx];
+
+      // 1. 데이터 집계
+      daily_shift_counts[current_shift]++;
+
+      // 2. 순차 규칙 검사 (N 근무 후 2일 OFF)
+      if (current_shift == NIGHT)
+      {
+        // 경계 검사: 월말에 배열을 벗어나지 않도록 방지
+        if (day + 2 < config->num_days)
+        {
+          ShiftType next_day_shift = schedule[current_idx + config->num_employees];
+          ShiftType day_after_next_shift = schedule[current_idx + (2 * config->num_employees)];
+
+          if (next_day_shift != OFF || day_after_next_shift != OFF)
+          {
+            score -= 2000; // 강한 페널티
+          }
+        }
+      }
     }
 
-    // 근무형태(아침, 주간, 저녁, 휴무 이기에 휴무를 제외한 2까지 확인)
-    // 만약 아침, 주간, 저녁중 근무자가 없다면 적합도 -500
-    for (int j = 0; j < 2; j++)
+    // 3. 일별 규칙 평가 (하루 순회가 끝난 후)
+    // 주간, 오후 근무자가 한 명도 없으면 감점
+    if (daily_shift_counts[DAY] == 0)
+      score -= 500;
+    if (daily_shift_counts[EVENING] == 0)
+      score -= 500;
+
+    // 야간 근무자가 정확히 1명이 아니면 감점
+    if (daily_shift_counts[NIGHT] != 1)
     {
-      score = (temp[j] != 0) ? -0 : -500;
+      score -= 1000;
     }
   }
 
-  // 일별 필요 인원 확인
+  // 4. 개인별 규칙 최종 평가 (향후 추가)
+  // ...
 
   return score;
 }
@@ -161,7 +186,7 @@ static void print_population(const Schedule *population, const ScheduleConfig *c
   for (int pop_num = 0; pop_num < pop_size; pop_num++)
   {
     int schedule_point = 0;
-    printf("pop Number: %d\n Schedule\n", pop_num);
+    printf("pop Number: %d\t fitness: %lf\n Schedule\n", pop_num, population[pop_num].fitness);
 
     for (int day = 0; day < month_end_days; day++)
     {
@@ -212,6 +237,10 @@ run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleCon
 
   population = initialize_population(config);
 
+  for (int idx = 0; idx < config->population_size; idx++)
+  {
+    population[idx].fitness = fitness_check(population[idx].schedule, config);
+  }
   print_population(population, config);
 
   result = population_best_result(population[0], config);
