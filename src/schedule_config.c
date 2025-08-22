@@ -43,10 +43,20 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
   config->month = month;
   config->num_employees = num_employees;
   config->num_days = get_days_in_month(year, month);
+  config->gene_length = config->num_days * config->num_employees;
 
   // 3. 나중에 CSV에서 읽어올 값들은 고정값으로 설정.
   config->population_size = num_employees * 100;
   config->max_generations = 500;
+
+  if (config->population_size < 50)
+  {
+    config->elite_count = 1;
+  }
+  else
+  {
+    config->elite_count = (int)(config->population_size * 0.02);
+  }
 
   return config;
 }

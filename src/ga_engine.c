@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define POPULATION_SIZE 100 // 100개의 근무표 후보를 사용
-
 static bool overlapped_detector(const Schedule *population, int current_population_count, int gene_length)
 {
   if (current_population_count < 2)
@@ -23,7 +21,7 @@ static bool overlapped_detector(const Schedule *population, int current_populati
   }
   return false;
 }
-Schedule *create_population_memeory(const ScheduleConfig *config)
+Schedule *create_population_memory(const ScheduleConfig *config)
 {
   // 유전자 길이 = 당월 말일 * 근무자 수
   int schedule_length = config->num_days * config->num_employees;
@@ -59,7 +57,7 @@ Schedule *create_population_memeory(const ScheduleConfig *config)
   return population;
 }
 
-void free_population_memeory(Schedule **population_ptr, const ScheduleConfig *config)
+void free_population_memory(Schedule **population_ptr, const ScheduleConfig *config)
 {
   // 이미 해제된 포인터일 경우, 바로 종료
   if (population_ptr == NULL || *population_ptr == NULL)
@@ -148,7 +146,7 @@ static Schedule *initialize_population(const ScheduleConfig *config)
   int schedule_length = config->num_days * config->num_employees;
 
   // 1. 근무표 메모리 할당
-  Schedule *population = create_population_memeory(config);
+  Schedule *population = create_population_memory(config);
 
   // 유전자 개체 수 만큼 순회
   for (int p_idx = 0; p_idx < config->population_size; p_idx++)
@@ -195,7 +193,7 @@ int compare_schedule_desc(const void *a, const void *b)
   }
 }
 
-// 적합도 점수에 따른 내림차순 정렬
+// 적합도 점수에 따른 내림차순 정렬함수
 static void sort_population(Schedule *population, const ScheduleConfig *config)
 {
   qsort(population,              // 정렬할 배열
@@ -204,25 +202,99 @@ static void sort_population(Schedule *population, const ScheduleConfig *config)
         compare_schedule_desc);  // 비교 기준 함수
 }
 
-static void print_population(const Schedule *population, const ScheduleConfig *config)
+static void crossover(const Schedule *parentA, const Schedule *parentB, Schedule *childA, Schedule *childB, const ScheduleConfig *config)
+{
+  int crossover_point = rand() % (config->gene_length - 1) + 1;
+
+  childA->fitness = 0.0;
+  childB->fitness = 0.0;
+
+  // for (int idx = 0; idx < config->gene_length; idx++)
+  // {
+  //   childA->schedule[idx] = (idx < crossover_point) ? parentA->schedule[idx] : parentB->schedule[idx];
+  //   childB->schedule[idx] = (idx > crossover_point) ? parentA->schedule[idx] : parentB->schedule[idx];
+  // }
+
+  memcpy(childA->schedule, parentA->schedule, crossover_point * sizeof(ShiftType));
+  memcpy(childA->schedule + crossover_point, parentB->schedule + crossover_point, (config->gene_length - crossover_point) * sizeof(ShiftType));
+
+  memcpy(childB->schedule, parentB->schedule, crossover_point * sizeof(ShiftType));
+  memcpy(childB->schedule + crossover_point, parentA->schedule + crossover_point, (config->gene_length - crossover_point) * sizeof(ShiftType));
+}
+
+static void save_elite(const Schedule *now_generation, Schedule *next_generation, const ScheduleConfig *config)
+{
+  for (int idx = 0; idx < config->elite_count; idx++)
+  // 반복문 조건 수정
+  {
+    // schedule (유전자 데이터) 복사
+    memcpy(next_generation[idx].schedule, now_generation[idx].schedule, config->gene_length * sizeof(ShiftType));
+
+    // fitness 값 복사 (추가)
+    next_generation[idx].fitness = now_generation[idx].fitness;
+  }
+}
+
+static int select_parent_tournament(const ScheduleConfig *config, int count)
+{
+  int temp = 0;
+  int num_return = rand() % config->population_size;
+  for (int i = 1; i < count; i++)
+  {
+    temp = rand() % config->population_size;
+
+    num_return = num_return < temp ? num_return : temp;
+  }
+
+  return num_return;
+}
+static void run_crossover_section(Schedule *now_generation, Schedule *next_generation, const ScheduleConfig *config)
+{
+  printf("\nrun_crossover_section_start\n");
+  save_elite(now_generation, next_generation, config);
+  int index1, index2;
+  for (int idx = config->elite_count; idx < config->population_size - 1; idx += 2)
+  {
+
+    index1 = select_parent_tournament(config, 10);
+    do
+    {
+      index2 = select_parent_tournament(config, 10);
+
+      // index1, index2가 동일하다면 반복하여 다른 개체 2개를 선택할 것.
+    } while (index1 == index2);
+
+    // printf("tournament result: %d, %d\n]n", index1, index2);
+    crossover(&now_generation[index1], &now_generation[index2], &next_generation[idx], &next_generation[idx + 1], config);
+  }
+  printf("\nrun_crossover_section_end\n");
+}
+
+static void print_population(const Schedule *population, const ScheduleConfig *config, int print_end_idx)
 {
   int pop_size = config->population_size;
   int month_end_days = config->num_days;
   int emp_num = config->num_employees;
 
-  for (int pop_num = 0; pop_num < pop_size; pop_num++)
+  // print_end_idx가 개체 수 보다 클 경우, 개체수로 조정.
+  if (print_end_idx > config->max_generations)
+  {
+    print_end_idx = config->max_generations;
+  }
+
+  for (int pop_num = 0; pop_num < print_end_idx; pop_num++)
   {
     int schedule_point = 0;
     printf("pop Number: %d\t fitness: %lf\n Schedule\n", pop_num, population[pop_num].fitness);
 
-    for (int day = 0; day < month_end_days; day++)
-    {
-      for (int emp_count = 0; emp_count < emp_num; emp_count++)
-      {
-        int temp_print = (emp_count == 0) ? day : emp_count;
-        printf("%d \t", temp_print);
-      }
-    }
+    // for (int day = 0; day < month_end_days; day++)
+    // {
+    //   for (int emp_count = 0; emp_count < emp_num; emp_count++)
+    //   {
+    //     int temp_print = (emp_count == 0) ? day : emp_count;
+    //     printf("%d \t", temp_print);
+    //   }
+    // }
 
     for (int day = 0; day < month_end_days; day++)
     {
@@ -260,34 +332,43 @@ run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleCon
   GaResult result;
   // Schedule 포인터 2개 생성(현세대, 다음세대)
   Schedule *population;
-  Schedule *next_generation = create_population_memeory(config);
+  Schedule *next_generation = create_population_memory(config);
 
   population = initialize_population(config);
 
+  // 현세대 적합도 함수 실행
   for (int idx = 0; idx < config->population_size; idx++)
   {
     population[idx].fitness = fitness_check(population[idx].schedule, config);
   }
 
+  // 적합도 함수 결과 내림차순 정렬
   sort_population(population, config);
 
-  print_population(population, config);
+  printf("\n\n Now gen\n\n");
+  print_population(population, config, 10);
 
+  // 엘리트 보존 및 교배
+  run_crossover_section(population, next_generation, config);
+  for (int idx = 0; idx < config->population_size; idx++)
+  {
+    next_generation[idx].fitness = fitness_check(next_generation[idx].schedule, config);
+  }
+  sort_population(next_generation, config);
+  printf("\n\n Next gen\n\n");
+  print_population(next_generation, config, 10);
+  printf("\n\n");
   result = population_best_result(population[0], config);
 
   // 이하 유전자 알고리즘에 따른 반복 예정.
   // Do While을 사용하여 적합도 함수결과 내림차순 정렬 후에 조건 비교후 탈출 가능.
 
-  // 현세대 적합도 함수 실행
-
-  // 적합도 함수 결과 내림차순 정렬
-
   // 교배 기준에 따라 교배하여 다음세대 생성
 
   // 현세대, 다음세대 포인터 교환
 
-  free_population_memeory(&population, config);
-  free_population_memeory(&next_generation, config);
+  free_population_memory(&population, config);
+  free_population_memory(&next_generation, config);
 
   return result;
 }

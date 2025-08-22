@@ -11,6 +11,8 @@ typedef struct
   int num_employees;   // 근무자 수
   int population_size; // 유전자 개체 수
   int max_generations; // 최대 반복 세대
+  int gene_length;     // 유전자 개체의 길이
+  int elite_count;     // 엘리트 갯수
 } ScheduleConfig;
 
 // 외부에 공개할 함수 선언
