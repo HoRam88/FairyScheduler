@@ -172,9 +172,36 @@ static Schedule *initialize_population(const ScheduleConfig *config)
   return population;
 }
 
-// 적합도 점수에 따른 내림차순 정렬
-static void sort_population()
+int compare_schedule_desc(const void *a, const void *b)
 {
+  // void 포인터를 Schedule 포인터로 변환
+  const Schedule *scheduleA = (const Schedule *)a;
+  const Schedule *scheduleB = (const Schedule *)b;
+
+  // scheduleB의 fitness가 더 크면, B를 앞으로 보내야 하므로 양수를 반환
+  if (scheduleA->fitness < scheduleB->fitness)
+  {
+    return 1;
+  }
+  // scheduleA의 fitness가 더 크면, A를 앞으로 보내야 하므로 음수를 반환
+  else if (scheduleA->fitness > scheduleB->fitness)
+  {
+    return -1;
+  }
+  // 두 fitness값이 같으면 0을 반환
+  else
+  {
+    return 0;
+  }
+}
+
+// 적합도 점수에 따른 내림차순 정렬
+static void sort_population(Schedule *population, const ScheduleConfig *config)
+{
+  qsort(population,              // 정렬할 배열
+        config->population_size, // 배열의 요소 갯수
+        sizeof(Schedule),        // 각 요소의 크기
+        compare_schedule_desc);  // 비교 기준 함수
 }
 
 static void print_population(const Schedule *population, const ScheduleConfig *config)
@@ -241,6 +268,9 @@ run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleCon
   {
     population[idx].fitness = fitness_check(population[idx].schedule, config);
   }
+
+  sort_population(population, config);
+
   print_population(population, config);
 
   result = population_best_result(population[0], config);
