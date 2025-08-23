@@ -38,6 +38,8 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
     return NULL;
   }
 
+  config->mutation_rate = 0.01;
+
   // 2. 전달받은 값과 계산된 값으로 구조체 초기화
   config->year = year;
   config->month = month;
