@@ -5,15 +5,16 @@
 // ScheduleConfig 구조체 정의
 typedef struct
 {
-  int year;            // 연도
-  int month;           // 월
-  int num_days;        // 해당 월 말일
-  int num_employees;   // 근무자 수
-  int population_size; // 유전자 개체 수
-  int max_generations; // 최대 반복 세대
-  int gene_length;     // 유전자 개체의 길이
-  int elite_count;     // 엘리트 갯수
-  double mutation_rate; //돌연변이 확률
+  int year;             // 연도
+  int month;            // 월
+  int num_days;         // 해당 월 말일
+  int num_employees;    // 근무자 수
+  int population_size;  // 유전자 개체 수
+  int max_generations;  // 최대 반복 세대
+  int gene_length;      // 유전자 개체의 길이
+  int elite_count;      // 엘리트 갯수
+  double mutation_rate; // 돌연변이 확률
+  int shift_type_count; // 근무 형태의 수
 } ScheduleConfig;
 
 // 외부에 공개할 함수 선언

@@ -9,4 +9,10 @@ typedef struct
   int contract_days; // 월 계약 근무일 수
 } Employee;
 
+typedef struct
+{
+  int total_work_days;
+  int shift_counts[4];
+} EmployeeStates;
+
 #endif

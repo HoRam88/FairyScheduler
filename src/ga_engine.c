@@ -80,6 +80,26 @@ void free_population_memory(Schedule **population_ptr, const ScheduleConfig *con
 double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
   double score = 10000.0;
+  int num_employees = config->num_employees;
+
+  double penalty = 120.0;
+  // 근무자별 근무형태를 저장할 수 있는 구조체 배열 선언 및 초기화.
+  EmployeeStates emp_stats[num_employees];
+  for (int emp_count = 0; emp_count < num_employees; emp_count++)
+  {
+    for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
+    {
+      emp_stats[emp_count].shift_counts[shift_type] = 0;
+    }
+    emp_stats[emp_count].total_work_days = 0;
+  }
+
+  // 근무형태 합계를 저장할 수 있는 구조체 선언 및 초기화.
+  EmployeeStates emp_total_stats;
+  for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
+  {
+    emp_total_stats.shift_counts[shift_type] = 0;
+  }
 
   // day를 기준으로 순회
   for (int day = 0; day < config->num_days; day++)
@@ -95,6 +115,9 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
       // 1. 데이터 집계
       daily_shift_counts[current_shift]++;
 
+      // 근무형태 합계와 각 근무자별 근무형태 구조체에 합계 저장.
+      emp_stats[emp].shift_counts[current_shift]++;
+      emp_total_stats.shift_counts[current_shift]++;
       // 2. 순차 규칙 검사 (N 근무 후 2일 OFF)
       if (current_shift == NIGHT)
       {
@@ -123,6 +146,36 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
     if (daily_shift_counts[NIGHT] != 1)
     {
       score -= 1000;
+    }
+
+    // 분산을 이용한 패널티
+
+    // 각 근무형태별 평균 근무일 수 구하기
+    int shift_type_count = config->shift_type_count;
+
+    // 근무형태별 근무일수 평균 저장용 변수 선언 및 초기화.
+    double avrage_days[shift_type_count];
+    for (int i = 0; i < shift_type_count; i++)
+    {
+      avrage_days[i] = emp_total_stats.shift_counts[i] / config->num_employees;
+      emp_total_stats.total_work_days += emp_total_stats.shift_counts[i];
+    }
+
+    // (각 근무자별 근무일수 - 평균 근무일수)^2 의 합계 구하기
+    double sum = 0.0;
+    for (int emp_count = 0; emp_count < config->num_employees; emp_count++)
+    {
+      for (int shift_count = 0; shift_count < shift_type_count; shift_count++)
+      {
+        double temp = 0.0;
+        temp = emp_stats[emp_count].shift_counts[shift_count] - avrage_days[shift_count];
+        sum = temp * temp;
+      }
+
+      // 합계 / 근무자 수 == 분산 구하기
+      sum = sum / config->num_employees;
+
+      score -= sum * penalty;
     }
   }
 
