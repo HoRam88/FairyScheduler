@@ -79,10 +79,9 @@ void free_population_memory(Schedule **population_ptr, const ScheduleConfig *con
 // 각 근무표의 적합도를 계산하는 함수
 double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
-  double score = 10000.0;
+  double score = config->fitness_init_score;
   int num_employees = config->num_employees;
 
-  double penalty = 120.0;
   // 근무자별 근무형태를 저장할 수 있는 구조체 배열 선언 및 초기화.
   EmployeeStates emp_stats[num_employees];
   for (int emp_count = 0; emp_count < num_employees; emp_count++)
@@ -129,7 +128,25 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 
           if (next_day_shift != OFF || day_after_next_shift != OFF)
           {
-            score -= 2000; // 강한 페널티
+            score -= config->penalty_wight_night_off_off; // 강한 페널티
+          }
+        }
+
+        if (day + 2 < config->num_days)
+        {
+          ShiftType next_day_shift = schedule[current_idx + config->num_employees];
+          ShiftType day_after_next_shift = schedule[current_idx + (2 * config->num_employees)];
+          ShiftType three_days_after_shift =
+              schedule[current_idx + (3 * num_employees)];
+          if (next_day_shift != OFF || day_after_next_shift != OFF)
+          {
+            score -= config->penalty_wight_night_off_off; // 강한 페널티
+          }
+          if (next_day_shift == NIGHT &&
+              day_after_next_shift == OFF &&
+              three_days_after_shift == OFF)
+          {
+            score += config->penalty_wight_night_off_off * 2;
           }
         }
       }
@@ -145,7 +162,7 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
     // 야간 근무자가 정확히 1명이 아니면 감점
     if (daily_shift_counts[NIGHT] != 1)
     {
-      score -= 1000;
+      score -= 5000;
     }
 
     // 분산을 이용한 패널티
@@ -155,27 +172,40 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 
     // 근무형태별 근무일수 평균 저장용 변수 선언 및 초기화.
     double avrage_days[shift_type_count];
+
+    // 근무형태별 근무일수의 합계
+    double avrage_days_total = 0.0;
     for (int i = 0; i < shift_type_count; i++)
     {
       avrage_days[i] = emp_total_stats.shift_counts[i] / config->num_employees;
-      emp_total_stats.total_work_days += emp_total_stats.shift_counts[i];
+
+      // OFF근무가 아니면 총 근무일수 합계에 포함.
+      if (shift_type_to_char(i) != 'O')
+        // 각 근무형태별
+        emp_total_stats.total_work_days += emp_total_stats.shift_counts[i];
     }
 
     // (각 근무자별 근무일수 - 평균 근무일수)^2 의 합계 구하기
     double sum = 0.0;
+    double penalty_wight = 0.0;
+    double calc_total_days_penalty = 0.0;
+
     for (int emp_count = 0; emp_count < config->num_employees; emp_count++)
     {
       for (int shift_count = 0; shift_count < shift_type_count; shift_count++)
       {
         double temp = 0.0;
+        penalty_wight = config->penalty_wight[shift_count];
         temp = emp_stats[emp_count].shift_counts[shift_count] - avrage_days[shift_count];
         sum = temp * temp;
+
+        emp_stats->total_work_days += emp_stats->shift_counts[shift_count];
       }
 
       // 합계 / 근무자 수 == 분산 구하기
       sum = sum / config->num_employees;
 
-      score -= sum * penalty;
+      score -= sum * penalty_wight;
     }
   }
 
@@ -374,15 +404,6 @@ static void print_population(const Schedule *population, const ScheduleConfig *c
     int schedule_point = 0;
     printf("pop Number: %d\t fitness: %lf\n Schedule\n", pop_num, population[pop_num].fitness);
 
-    // for (int day = 0; day < month_end_days; day++)
-    // {
-    //   for (int emp_count = 0; emp_count < emp_num; emp_count++)
-    //   {
-    //     int temp_print = (emp_count == 0) ? day : emp_count;
-    //     printf("%d \t", temp_print);
-    //   }
-    // }
-
     for (int day = 0; day < month_end_days; day++)
     {
 
@@ -395,8 +416,16 @@ static void print_population(const Schedule *population, const ScheduleConfig *c
       printf("\n\n");
     }
 
+    printf("EmpNo\t\t");
+    for (ShiftType work = 0; work < 4; work++)
+    {
+      printf("%c\t", shift_type_to_char(work));
+    }
+    printf("\n");
+
     for (int emp_count = 0; emp_count < emp_num; emp_count++)
     {
+      printf("EmpNo: %d\t", emp_count + 1);
       for (int work = 0; work < 4; work++)
       {
         printf("%d\t", work_day[emp_count][work]);

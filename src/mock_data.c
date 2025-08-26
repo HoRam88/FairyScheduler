@@ -37,6 +37,11 @@ Employee *load_employees(int *employee_count)
   strcpy(employees[3].name, "성진우");
   employees[3].contract_days = 21;
 
+  // 직원 5
+  employees[4].id = 105;
+  strcpy(employees[3].name, "김마라");
+  employees[4].contract_days = 21;
+
   printf("Loaded %d employees from MOCK data.\n", *employee_count);
   return employees;
 }

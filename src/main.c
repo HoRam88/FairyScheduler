@@ -16,15 +16,16 @@ int main()
 
   int year_from_csv = 2025;
   int month_from_csv = 8;
-  int employees_form_csv = 4;
+  int employees_form_csv;
+
+  Employee *employee_list = load_employees(&employees_form_csv);
+
+  printf("\nCount: %d\n", employees_form_csv);
 
   srand(time(NULL));
 
   // ScheduleConfig 초기화는 이후 csv에서 읽어오는 형태로 변경해야 함.
   ScheduleConfig *scheduleconfig = init_schedule_config(year_from_csv, month_from_csv, employees_form_csv);
-
-  int count = 0;
-  Employee *employee_list = load_employees(&count);
 
   GaResult result = run_genetic_algorithm(employee_list, scheduleconfig->num_employees, scheduleconfig);
 

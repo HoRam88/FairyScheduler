@@ -61,5 +61,14 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
     config->elite_count = (int)(config->population_size * 0.02);
   }
 
+  config->fitness_init_score = 1000000.0;
+
+  config->penalty_wight[0] = 1100.0;
+  config->penalty_wight[1] = 1000.0;
+  config->penalty_wight[2] = 2000.0;
+  config->penalty_wight[3] = 0.0;
+
+  config->penalty_wight_total_days = 500;
+  config->penalty_wight_night_off_off = 5000;
   return config;
 }
