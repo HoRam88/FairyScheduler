@@ -13,6 +13,6 @@ typedef struct
 {
   int total_work_days;
   int shift_counts[4];
-} EmployeeStates;
+} EmployeeStats;
 
 #endif

@@ -76,6 +76,52 @@ void free_population_memory(Schedule **population_ptr, const ScheduleConfig *con
   *population_ptr = NULL;
 }
 
+// 날짜 범위를 지정하여 분산을 이용한 패널티 계산을 위한 함수 emp_stats에 저장된 범위만 이용하여 분산을 구함. 원하는 범위만 emp_stats에 넣어 전달하여 구할것.
+static double calculate_shift_variance(const EmployeeStats *emp_stats, const ScheduleConfig *config)
+{
+  double total_variance_penalty = 0.0;
+
+  int num_shift_type = config->shift_type_count;
+  int num_employees = config->num_employees;
+  double avg[num_shift_type];
+
+  EmployeeStats total;
+  // total 초기화
+  memset(&total, 0, sizeof(EmployeeStats));
+
+  // 각 근무형태별 평균 근무일수 구하기
+  for (int shift = 0; shift < num_shift_type; shift++)
+  {
+    for (int emp = 0; emp < num_employees; emp++)
+    {
+      total.shift_counts[shift] += emp_stats[emp].shift_counts[shift];
+      // if (shift != 3)
+      // {
+      //   total.total_work_days += total.shift_counts[shift];
+      // }
+    }
+    avg[shift] = (double)total.shift_counts[shift] / num_employees;
+  }
+
+  // (각 근무자별 근무일수 - 평균 근무일수)^2 의 합계 구하기
+  for (int shift = 0; shift < num_shift_type; shift++)
+  {
+    double temp = 0.0;
+    double sum = 0.0;
+
+    for (int emp = 0; emp < num_employees; emp++)
+    {
+      temp = emp_stats[emp].shift_counts[shift] - avg[shift];
+      sum += temp * temp;
+    }
+    // 합계^2 / 근무자 수 == 분산 구하기
+    sum = sum / num_employees;
+
+    total_variance_penalty += sum * config->penalty_wight[shift];
+  }
+
+  return total_variance_penalty;
+}
 // 각 근무표의 적합도를 계산하는 함수
 double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
@@ -83,7 +129,9 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
   int num_employees = config->num_employees;
 
   // 근무자별 근무형태를 저장할 수 있는 구조체 배열 선언 및 초기화.
-  EmployeeStates emp_stats[num_employees];
+  EmployeeStats emp_stats[num_employees];
+
+  // emp_stats 초기화
   for (int emp_count = 0; emp_count < num_employees; emp_count++)
   {
     for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
@@ -94,7 +142,10 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
   }
 
   // 근무형태 합계를 저장할 수 있는 구조체 선언 및 초기화.
-  EmployeeStates emp_total_stats;
+  EmployeeStats emp_total_stats;
+
+  // emp_total_stats 초기화
+  emp_total_stats.total_work_days = 0;
   for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
   {
     emp_total_stats.shift_counts[shift_type] = 0;
@@ -103,6 +154,7 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
   // day를 기준으로 순회
   for (int day = 0; day < config->num_days; day++)
   {
+    int count_days = 0;
     int daily_shift_counts[4] = {0}; // {DAY, EVENING, NIGHT, OFF} 카운터
 
     // 그날의 모든 직원을 순회
@@ -116,11 +168,15 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 
       // 근무형태 합계와 각 근무자별 근무형태 구조체에 합계 저장.
       emp_stats[emp].shift_counts[current_shift]++;
+      emp_stats[emp].total_work_days++;
+
       emp_total_stats.shift_counts[current_shift]++;
       // 2. 순차 규칙 검사 (N 근무 후 2일 OFF)
       if (current_shift == NIGHT)
       {
         // 경계 검사: 월말에 배열을 벗어나지 않도록 방지
+
+        // N 근무 이후 O O 보장을 위한 조건 검사
         if (day + 2 < config->num_days)
         {
           ShiftType next_day_shift = schedule[current_idx + config->num_employees];
@@ -131,22 +187,19 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
             score -= config->penalty_wight_night_off_off; // 강한 페널티
           }
         }
-
-        if (day + 2 < config->num_days)
+        // N N O O 근무형태일 경우 가점 부여(+)
+        if (day + 3 < config->num_days)
         {
           ShiftType next_day_shift = schedule[current_idx + config->num_employees];
           ShiftType day_after_next_shift = schedule[current_idx + (2 * config->num_employees)];
-          ShiftType three_days_after_shift =
-              schedule[current_idx + (3 * num_employees)];
-          if (next_day_shift != OFF || day_after_next_shift != OFF)
-          {
-            score -= config->penalty_wight_night_off_off; // 강한 페널티
-          }
+          ShiftType three_days_after_shift = schedule[current_idx + (3 * num_employees)];
+
           if (next_day_shift == NIGHT &&
               day_after_next_shift == OFF &&
               three_days_after_shift == OFF)
           {
-            score += config->penalty_wight_night_off_off * 2;
+            // N N O O 근무형태일 경우 가점 부여(+)
+            score += config->positive_wight_night_night_off_off;
           }
         }
       }
@@ -155,57 +208,30 @@ double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
     // 3. 일별 규칙 평가 (하루 순회가 끝난 후)
     // 주간, 오후 근무자가 한 명도 없으면 감점
     if (daily_shift_counts[DAY] == 0)
-      score -= 500;
+      score -= 5000;
     if (daily_shift_counts[EVENING] == 0)
-      score -= 500;
+      score -= 5000;
 
     // 야간 근무자가 정확히 1명이 아니면 감점
     if (daily_shift_counts[NIGHT] != 1)
     {
-      score -= 5000;
+      score -= 20000;
     }
 
-    // 분산을 이용한 패널티
-
-    // 각 근무형태별 평균 근무일 수 구하기
-    int shift_type_count = config->shift_type_count;
-
-    // 근무형태별 근무일수 평균 저장용 변수 선언 및 초기화.
-    double avrage_days[shift_type_count];
-
-    // 근무형태별 근무일수의 합계
-    double avrage_days_total = 0.0;
-    for (int i = 0; i < shift_type_count; i++)
+    // 분산 패널티 적용 조건 검사 1주일단위 또는 마지막 날 일 때 적용
+    if ((day + 1) % 7 == 0 || day == config->num_days - 1)
     {
-      avrage_days[i] = emp_total_stats.shift_counts[i] / config->num_employees;
+      score -= calculate_shift_variance(emp_stats, config);
 
-      // OFF근무가 아니면 총 근무일수 합계에 포함.
-      if (shift_type_to_char(i) != 'O')
-        // 각 근무형태별
-        emp_total_stats.total_work_days += emp_total_stats.shift_counts[i];
-    }
-
-    // (각 근무자별 근무일수 - 평균 근무일수)^2 의 합계 구하기
-    double sum = 0.0;
-    double penalty_wight = 0.0;
-    double calc_total_days_penalty = 0.0;
-
-    for (int emp_count = 0; emp_count < config->num_employees; emp_count++)
-    {
-      for (int shift_count = 0; shift_count < shift_type_count; shift_count++)
+      // emp_stats 초기화
+      for (int emp_count = 0; emp_count < num_employees; emp_count++)
       {
-        double temp = 0.0;
-        penalty_wight = config->penalty_wight[shift_count];
-        temp = emp_stats[emp_count].shift_counts[shift_count] - avrage_days[shift_count];
-        sum = temp * temp;
-
-        emp_stats->total_work_days += emp_stats->shift_counts[shift_count];
+        for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
+        {
+          emp_stats[emp_count].shift_counts[shift_type] = 0;
+        }
+        emp_stats[emp_count].total_work_days = 0;
       }
-
-      // 합계 / 근무자 수 == 분산 구하기
-      sum = sum / config->num_employees;
-
-      score -= sum * penalty_wight;
     }
   }
 
@@ -452,6 +478,7 @@ static GaResult population_best_result(Schedule population, const ScheduleConfig
   return result;
 }
 
+// 적합도 함수. Schedule 포인터배열을 전부 순회하도록 실행.
 static void fitness_Do(Schedule **now_generation_ptr, const ScheduleConfig *config)
 {
   Schedule *now_generation = *now_generation_ptr;
@@ -496,6 +523,8 @@ run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleCon
       // print_population(population, config, 1);
     }
 
+    if (population[0].fitness > config->fitness_init_score)
+      break;
     run_crossover_Do(population, next_generation, config);
     switchGen(&population, &next_generation);
     fitness_Do(&population, config);

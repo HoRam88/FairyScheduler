@@ -49,7 +49,7 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
 
   // 3. 나중에 CSV에서 읽어올 값들은 고정값으로 설정.
   config->population_size = num_employees * 100;
-  config->max_generations = 500;
+  config->max_generations = 700;
   config->shift_type_count = 4;
 
   if (config->population_size < 50)
@@ -61,14 +61,17 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
     config->elite_count = (int)(config->population_size * 0.02);
   }
 
+  // 초기 적합도 점수 1백만으로 설정
   config->fitness_init_score = 1000000.0;
 
+  // 각 근무형태에 대한 패널티 가중치
   config->penalty_wight[0] = 1100.0;
   config->penalty_wight[1] = 1000.0;
   config->penalty_wight[2] = 2000.0;
   config->penalty_wight[3] = 0.0;
 
   config->penalty_wight_total_days = 500;
-  config->penalty_wight_night_off_off = 5000;
+  config->penalty_wight_night_off_off = 3000;
+  config->positive_wight_night_night_off_off = 2000;
   return config;
 }

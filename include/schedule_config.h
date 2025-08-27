@@ -19,6 +19,7 @@ typedef struct
   double penalty_wight_total_days;    // 평균 근무일수 분산에 대한 패널티값
   double fitness_init_score;          // 적합도 초기 점수
   double penalty_wight_night_off_off; // Night근무 후 OFF, OFF 보장에 대한 가중치
+  double positive_wight_night_night_off_off;  //N N O O 근무에 대한 +가중치
 } ScheduleConfig;
 
 // 외부에 공개할 함수 선언
