@@ -15,4 +15,12 @@ typedef struct
   int shift_counts[4];
 } EmployeeStats;
 
+typedef struct
+{
+  int year;             // 연
+  int month;            // 월
+  int day_of_week_idex; // 요일
+
+} FromCsv;
+
 #endif

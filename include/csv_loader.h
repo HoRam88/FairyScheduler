@@ -1,0 +1,23 @@
+#ifndef CSV_LOADER_H
+#define CSV_LOADER_H
+
+typedef struct
+{
+  int raw_year;
+  int raw_month;
+
+} RawCsvConfig;
+
+// csv파일을 읽으면서 수행할 반복문 내에서 상태전환을 위한 enum 선언.
+typedef enum
+{
+  PARSE_STATE_INITIAL,           // 초기 상태: 아직 아무 섹션도 파악되지 않음
+  PARSE_STATE_YEAR_MONTH_HEADER, // "Year,Month" 헤더를 읽은 상태
+  PARSE_STATE_YEAR_MONTH_DATA,   // 연/월 데이터를 읽은 상태 (다음은 빈 줄 예상)
+  PARSE_STATE_BLANK_LINE,        // 빈 줄을 읽은 상태 (다음은 직원 헤더 예상)
+  PARSE_STATE_EMPLOYEE_HEADER,   // "EmpNo,Name,WorkDays" 헤더를 읽은 상태
+  PARSE_STATE_EMPLOYEE_DATA      // 직원 데이터를 읽는 상태
+} CsvParseState;
+
+RawCsvConfig load_ga_data_from_csv(const char *file_path);
+#endif

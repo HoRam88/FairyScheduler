@@ -10,6 +10,8 @@ typedef enum
   OFF,     // 휴무
 } ShiftType;
 
+
+
 // 변환 함수 선언 (나중에 구현)
 char shift_type_to_char(ShiftType type);
 

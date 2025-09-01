@@ -1,5 +1,6 @@
 {
   "files.associations": {
-    "shift_type.h": "c"
+    "shift_type.h": "c",
+    "csv_loader.h": "c"
   }
 }
