@@ -20,12 +20,28 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  const char *file_path = argv[1];
+  const char *csv_file_path = argv[1];
 
-  RawCsvConfig loaded_config;
-  loaded_config = load_ga_data_from_csv(file_path);
+  // --- 2. CSV 파일에서 데이터 로드 ---
+  RawCsvConfig loaded_raw_config;    // CSV에서 읽어올 연, 월 등을 저장
+  Employee *loaded_employees = NULL; // CSV에서 읽어올 직원 데이터
+  int loaded_employee_count = 0;     // CSV에서 읽어올 직원 수
 
-  printf("\nloaded_csv_year: %d\nloaded_csv_month: %d\n\n", loaded_config.raw_year, loaded_config.raw_month);
+  // load_from_csv_Config_Employees 함수 호출
+  // 이 함수는 loaded_raw_config, loaded_employees, loaded_employee_count를 채워줍니다.
+  if (!load_from_csv_Config_Employees(csv_file_path, &loaded_raw_config, &loaded_employees, &loaded_employee_count))
+  {
+    fprintf(stderr, "CSV 데이터 로드 실패. 프로그램을 종료합니다.\n");
+    // load_from_csv_Config_Employees 내부에서 메모리 해제 처리됨
+    return EXIT_FAILURE;
+  }
+
+  for (int i = 0; i < loaded_employee_count; i++)
+  {
+    printf("\nEmpNo: %d\nName: %s\nWorkDays: %d\n", (loaded_employees + (i))->id, (loaded_employees + (i))->name, (loaded_employees + (i))->contract_days);
+  }
+
+  printf("\nloaded_csv_year: %d\nloaded_csv_month: %d\n\n", loaded_raw_config.raw_year, loaded_raw_config.raw_month);
 
   return 0;
 

@@ -1,5 +1,6 @@
 #ifndef CSV_LOADER_H
 #define CSV_LOADER_H
+#include <stdbool.h>
 
 typedef struct
 {
@@ -20,4 +21,10 @@ typedef enum
 } CsvParseState;
 
 RawCsvConfig load_ga_data_from_csv(const char *file_path);
+
+bool load_from_csv_Config_Employees(const char *file_path,
+                                    RawCsvConfig *config_out, // 출력: ScheduleConfig 초기화를 위한 연, 월 등의 정보
+                                    Employee **employees_out, // 출력: 직원 정보를 가지는 포인터 배열
+                                    int *employee_count       // 출력: 직원의 수
+);
 #endif

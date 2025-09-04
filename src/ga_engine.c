@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+// 중복된 개체 탐지 함수
 static bool overlapped_detector(const Schedule *population, int current_population_count, int gene_length)
 {
   if (current_population_count < 2)
@@ -21,6 +22,8 @@ static bool overlapped_detector(const Schedule *population, int current_populati
   }
   return false;
 }
+
+// 유전자 개체 저장을 위한 메모리 할당 함수
 Schedule *create_population_memory(const ScheduleConfig *config)
 {
   // 유전자 길이 = 당월 말일 * 근무자 수
@@ -57,6 +60,7 @@ Schedule *create_population_memory(const ScheduleConfig *config)
   return population;
 }
 
+// 유전자 개체 메모리 반환 함수
 void free_population_memory(Schedule **population_ptr, const ScheduleConfig *config)
 {
   // 이미 해제된 포인터일 경우, 바로 종료
@@ -122,6 +126,7 @@ static double calculate_shift_variance(const EmployeeStats *emp_stats, const Sch
 
   return total_variance_penalty;
 }
+
 // 각 근무표의 적합도를 계산하는 함수
 double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
@@ -333,6 +338,7 @@ static void crossover(const Schedule *parentA, const Schedule *parentB, Schedule
   memcpy(childB->schedule + crossover_point, parentA->schedule + crossover_point, (config->gene_length - crossover_point) * sizeof(ShiftType));
 }
 
+// 엘리트 보존 함수
 static void save_elite(const Schedule *now_generation, Schedule *next_generation, const ScheduleConfig *config)
 {
   for (int idx = 0; idx < config->elite_count; idx++)
@@ -346,6 +352,7 @@ static void save_elite(const Schedule *now_generation, Schedule *next_generation
   }
 }
 
+// 돌연변이 적용 함수
 static void mutate_individual(Schedule *child, const ScheduleConfig *config)
 {
 
@@ -358,6 +365,7 @@ static void mutate_individual(Schedule *child, const ScheduleConfig *config)
   }
 }
 
+// 유전자 교배를 위한 토너먼트 함수
 static int select_parent_tournament(const ScheduleConfig *config, int count)
 {
   // 교배 인덱스 선정 함수. 반드시 내림차순정렬(sort_population)을 실행한 후 사용할 것.
@@ -372,6 +380,8 @@ static int select_parent_tournament(const ScheduleConfig *config, int count)
 
   return num_return;
 }
+
+// 유전자 교배 실행 함수(다음세대 생성 함수)
 static void run_crossover_Do(Schedule *now_generation, Schedule *next_generation, const ScheduleConfig *config)
 {
   // 교배 실행 함수.
@@ -404,6 +414,7 @@ static void run_crossover_Do(Schedule *now_generation, Schedule *next_generation
   // printf("\nrun_crossover_section_end\n");
 }
 
+// 디버깅을 위한 개체 프린트 함수. 0 ~ print_end_idx까지의 개체를 출력
 static void print_population(const Schedule *population, const ScheduleConfig *config, int print_end_idx)
 {
   // 개체 출력 함수. 인덱스기준 0~print_end_idx까지 출력함.
@@ -463,6 +474,7 @@ static void print_population(const Schedule *population, const ScheduleConfig *c
   }
 }
 
+// 최종 반환을 위한 개체 선택 함수
 static GaResult population_best_result(Schedule population, const ScheduleConfig *config)
 {
   GaResult result;
@@ -488,6 +500,7 @@ static void fitness_Do(Schedule **now_generation_ptr, const ScheduleConfig *conf
   }
 }
 
+// now_generation_ptr과 next_generation_ptr를 교환. 메모리 주소만 교환하여 변수명은 그대로 활용하기 위함.
 static void switchGen(Schedule **now_generation_ptr, Schedule **next_generation_ptr)
 {
   Schedule *tempSchedule;
@@ -498,9 +511,8 @@ static void switchGen(Schedule **now_generation_ptr, Schedule **next_generation_
   *next_generation_ptr = tempSchedule;
 }
 
-// 외부에 공개된 메인 함수
-GaResult
-run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleConfig *config)
+// 외부에 공개된 메인 함수 최종결과 반환.
+GaResult run_genetic_algorithm(Employee *employees, int employee_count, const ScheduleConfig *config)
 {
   // 한 개체의 유전자 길이 = 근무자 수 * 해당 월 말일
   GaResult result;

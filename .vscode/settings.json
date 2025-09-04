@@ -1,6 +1,9 @@
 {
   "files.associations": {
     "shift_type.h": "c",
-    "csv_loader.h": "c"
+    "csv_loader.h": "c",
+    "typeinfo": "c",
+    "bitset": "c",
+    "unordered_map": "c"
   }
 }
