@@ -89,7 +89,7 @@ bool load_from_csv_Config_Employees(const char *file_path,
 
   // employees_out 초기 메모리 할당
   emp_resize_success = resize_up_Employee(employees_out, &emp_capacity);
-  printf("\nemp_capacity: %d\n", *&emp_capacity);
+  // printf("\nemp_capacity: %d\n", *&emp_capacity);
 
   if (!emp_resize_success)
   {
@@ -178,7 +178,7 @@ bool load_from_csv_Config_Employees(const char *file_path,
       }
 
       // 파싱을 위한 임시 포인터
-      printf("\nemployee_count: %d\n", *(employee_count));
+      printf("\remployee_count: %d", *(employee_count));
       Employee *emp = &(*employees_out)[*employee_count];
       // strtok를 사용하여 파싱
       char *token = strtok(line_buffer, ",");

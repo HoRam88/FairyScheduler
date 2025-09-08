@@ -48,8 +48,8 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
   config->gene_length = config->num_days * config->num_employees;
 
   // 3. 나중에 CSV에서 읽어올 값들은 고정값으로 설정.
-  config->population_size = num_employees * 100;
-  config->max_generations = 700;
+  config->population_size = num_employees * 600;
+  config->max_generations = 2000;
   config->shift_type_count = 4;
 
   if (config->population_size < 50)

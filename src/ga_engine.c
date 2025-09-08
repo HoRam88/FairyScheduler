@@ -525,15 +525,15 @@ GaResult run_genetic_algorithm(Employee *employees, int employee_count, const Sc
   population = initialize_population(config); // 유전자 개체 초기화 및 초기세대 생성
   fitness_Do(&population, config);            // 적합도 함수 실행
   sort_population(population, config);        // 적합도 기준 내림차순 정렬
-
-  while (generation_count != config->max_generations)
+  printf("\rgeneration_count: %d, fitness: %lf", generation_count, population[0].fitness);
+  while (generation_count < config->max_generations)
   {
     generation_count++;
-    if (generation_count % 100 == 0)
-    {
-      printf("\ngeneration_count: %d\n", generation_count);
-      // print_population(population, config, 1);
-    }
+    printf("\rGeneration: %d / %d | Best Fitness: %lf", generation_count, config->max_generations, population[0].fitness);
+    // if (generation_count % 50 == 0)
+    // {
+    //   printf("\rGeneration: %d / %d | Best Fitness: %lf", generation_count, config->max_generations, population[0].fitness);
+    // }
 
     if (population[0].fitness > config->fitness_init_score)
       break;
