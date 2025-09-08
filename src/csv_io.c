@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "employee.h"
-#include "csv_loader.h"
+#include "csv_io.h"
 
 // 초기 employee 포인터 배열의 동적할당용 길이
 #define INITIAL_EMPLOYEE_CAPACITY 4
