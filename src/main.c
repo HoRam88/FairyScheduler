@@ -9,8 +9,6 @@
 #include "ga_engine.h"
 #include "csv_loader.h"
 
-Employee *load_employees(int *employee_count);
-
 int main(int argc, char *argv[])
 {
   if (argc < 2)
@@ -20,6 +18,7 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
+  srand(time(NULL));
   const char *csv_file_path = argv[1];
 
   // --- 2. CSV 파일에서 데이터 로드 ---
@@ -36,18 +35,8 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  for (int i = 0; i < loaded_employee_count; i++)
-  {
-    printf("\nEmpNo: %d\nName: %s\nWorkDays: %d\n", (loaded_employees + (i))->id, (loaded_employees + (i))->name, (loaded_employees + (i))->contract_days);
-  }
-
-  printf("\nloaded_csv_year: %d\nloaded_csv_month: %d\n\n", loaded_raw_config.raw_year, loaded_raw_config.raw_month);
-
-  return 0;
-
-  int year_from_csv = 2025;
-  int month_from_csv = 8;
-  int employees_form_csv;
+  int year_from_csv = loaded_raw_config.raw_year;
+  int month_from_csv = loaded_raw_config.raw_month;
 
   // 요일을 계산하기 위한 구조체 및 변수 초기화
   struct tm date_info = {0};
@@ -59,20 +48,16 @@ int main(int argc, char *argv[])
 
   int day_of_week_index = date_info.tm_wday;
 
-  Employee *employee_list = load_employees(&employees_form_csv);
-
-  printf("\nCount: %d\n", employees_form_csv);
-
-  srand(time(NULL));
+  printf("\nCount: %d\n", loaded_employee_count);
 
   // ScheduleConfig 초기화는 이후 csv에서 읽어오는 형태로 변경해야 함.
-  ScheduleConfig *scheduleconfig = init_schedule_config(year_from_csv, month_from_csv, employees_form_csv);
+  ScheduleConfig *scheduleconfig = init_schedule_config(year_from_csv, month_from_csv, loaded_employee_count);
 
-  GaResult result = run_genetic_algorithm(employee_list, scheduleconfig->num_employees, scheduleconfig);
+  GaResult result = run_genetic_algorithm(loaded_employees, scheduleconfig->num_employees, scheduleconfig);
 
   // 프로그램 종료 전 메모리 해제
   free(scheduleconfig);
-  free(employee_list);
+  free(loaded_employees);
 
   return 0;
 }
