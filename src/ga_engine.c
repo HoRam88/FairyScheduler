@@ -127,6 +127,47 @@ static double calculate_shift_variance(const EmployeeStats *emp_stats, const Sch
   return total_variance_penalty;
 }
 
+// csv파일 저장을 위해 반환할 emp_stats
+bool emp_stats_get(const ShiftType *result_schedule, const ScheduleConfig *config, EmployeeStats *emp_stats)
+{
+  bool is_success = false;
+  int num_employees = config->num_employees;
+
+  // 근무자별 근무형태를 저장할 수 있는 구조체 배열 선언 및 초기화.
+
+  // emp_stats 초기화
+  for (int emp_count = 0; emp_count < num_employees; emp_count++)
+  {
+    for (int shift_type = 0; shift_type < config->shift_type_count; shift_type++)
+    {
+      emp_stats[emp_count].shift_counts[shift_type] = 0;
+    }
+    emp_stats[emp_count].total_work_days = 0;
+  }
+  // 초기화 끝
+
+  // 각 근무자별 근무일수별 입력
+  for (int coursor = 0; coursor < config->num_days * config->num_employees; coursor++)
+  {
+    int worker_id = coursor % config->num_employees;
+
+    emp_stats[worker_id].shift_counts[result_schedule[coursor]]++;
+  }
+
+  for (int emp_num = 0; emp_num < config->num_employees; emp_num++)
+  {
+    emp_stats[emp_num].total_work_days = 0;
+    for (int work = 0; work < 3; work++)
+    {
+      emp_stats[emp_num].total_work_days += emp_stats[emp_num].shift_counts[work];
+    }
+  }
+
+  is_success = true;
+
+  return is_success;
+}
+
 // 각 근무표의 적합도를 계산하는 함수
 double fitness_check(const ShiftType *schedule, const ScheduleConfig *config)
 {
@@ -546,9 +587,9 @@ GaResult run_genetic_algorithm(Employee *employees, int employee_count, const Sc
   printf("\ngeneration_count: %d\n", generation_count);
   result = population_best_result(population[0], config);
 
-  print_population(population, config, 1);
-  // 이하 유전자 알고리즘에 따른 반복 예정.
-  // Do While을 사용하여 적합도 함수결과 내림차순 정렬 후에 조건 비교후 탈출 가능.
+  // print_population(population, config, 1);
+  //  이하 유전자 알고리즘에 따른 반복 예정.
+  //  Do While을 사용하여 적합도 함수결과 내림차순 정렬 후에 조건 비교후 탈출 가능.
 
   // 교배 기준에 따라 교배하여 다음세대 생성
 

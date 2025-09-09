@@ -38,7 +38,7 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
     return NULL;
   }
 
-  config->mutation_rate = 0.01;
+  config->mutation_rate = 0.08;
 
   // 2. 전달받은 값과 계산된 값으로 구조체 초기화
   config->year = year;
@@ -48,8 +48,8 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
   config->gene_length = config->num_days * config->num_employees;
 
   // 3. 나중에 CSV에서 읽어올 값들은 고정값으로 설정.
-  config->population_size = num_employees * 600;
-  config->max_generations = 2000;
+  config->population_size = num_employees * 200;
+  config->max_generations = 1000;
   config->shift_type_count = 4;
 
   if (config->population_size < 50)
@@ -65,13 +65,13 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
   config->fitness_init_score = 1000000.0;
 
   // 각 근무형태에 대한 패널티 가중치
-  config->penalty_wight[0] = 1100.0;
-  config->penalty_wight[1] = 1000.0;
-  config->penalty_wight[2] = 2000.0;
+  config->penalty_wight[0] = 800.0;
+  config->penalty_wight[1] = 800.0;
+  config->penalty_wight[2] = 1000.0;
   config->penalty_wight[3] = 0.0;
 
-  config->penalty_wight_total_days = 500;
-  config->penalty_wight_night_off_off = 3000;
-  config->positive_wight_night_night_off_off = 2000;
+  config->penalty_wight_total_days = 1500;
+  config->penalty_wight_night_off_off = 2500;
+  config->positive_wight_night_night_off_off = 3500;
   return config;
 }

@@ -1,6 +1,7 @@
 #ifndef CSV_IO_H
 #define CSV_IO_H
 #include <stdbool.h>
+#include <ga_engine.h>
 
 typedef struct
 {
@@ -27,4 +28,7 @@ bool load_from_csv_Config_Employees(const char *file_path,
                                     Employee **employees_out, // 출력: 직원 정보를 가지는 포인터 배열
                                     int *employee_count       // 출력: 직원의 수
 );
+
+char *generate_output_path(const char *input_path);
+bool save_schedule_to_csv(const char *input_path, const Employee *emp_list, const EmployeeStats *emp_stats, const ScheduleConfig *config, const GaResult result);
 #endif

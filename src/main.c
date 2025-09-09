@@ -53,8 +53,36 @@ int main(int argc, char *argv[])
 
   // ScheduleConfig 초기화는 이후 csv에서 읽어오는 형태로 변경해야 함.
   ScheduleConfig *scheduleconfig = init_schedule_config(year_from_csv, month_from_csv, loaded_employee_count);
+  printf("\nScheduleConfig Set\n");
 
   GaResult result = run_genetic_algorithm(loaded_employees, scheduleconfig->num_employees, scheduleconfig);
+  printf("\nresult Done\n");
+
+  EmployeeStats *emp_stats;
+  emp_stats = malloc(sizeof(EmployeeStats) * scheduleconfig->num_employees);
+
+  bool emp_success = false;
+  emp_success = emp_stats_get(result.best_schedule.schedule, scheduleconfig, emp_stats);
+
+  if (emp_success == false)
+  {
+    printf("\n!!! emp_state_get_FAIL!!!\n");
+  }
+
+  // for (int i = 0; i < scheduleconfig->num_employees; i++)
+  // {
+  //   printf("\nEmpNo: %d\n", i);
+  //   printf("\nemp_stats[%d]->total_work_days: %d\n", i, emp_stats[i].total_work_days);
+
+  //   for (int j = 0; j < 4; j++)
+  //   {
+  //     printf("[%d]: %d\t", j, emp_stats[i].shift_counts[j]);
+  //   }
+  // }
+
+  char *output_path = generate_output_path(csv_file_path);
+
+  save_schedule_to_csv(output_path, loaded_employees, emp_stats, scheduleconfig, result);
 
   // 프로그램 종료 전 메모리 해제
   free(scheduleconfig);

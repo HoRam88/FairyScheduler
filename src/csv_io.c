@@ -223,7 +223,125 @@ bool load_from_csv_Config_Employees(const char *file_path,
   // 최종 종료 전 employee_count를 입력된 직원 수 만큼으로 맞추고, 포인터 크기도 그에 맞게 재조정
   employee_count--;
   emp_resize_success = resize_set_Employee(employees_out, *employee_count);
-  is_success = true;
+
+  // 정상적으로 파일을 닫으면 정상종료로 판단
+  int test = fclose(fp);
+  if (test == 0)
+  {
+    is_success = true;
+  }
 
   return is_success;
+}
+
+char *generate_output_path(const char *input_path)
+{
+  // 출력 파일의 뒤에 붙일 부분 선언
+  const char *suffix = "_result.csv";
+
+  // 최종 반환을 위한 경로
+  char *output_path = NULL;
+
+  // input_path(입력파일 경로)에서 확장자 앞의 . 위치를 찾음
+  const char *dot = strrchr(input_path, '.');
+  size_t base_length;
+  if (dot == NULL)
+  {
+    //'.'을 찾을 수 없는 경우 전체 문자열을 base로 간주
+    base_length = strlen(input_path);
+  }
+  else
+  {
+    // '.'을 찾은 경우, '.'앞까지의 길이를 base로 간주
+    base_length = dot - input_path;
+  }
+
+  // 최종 경로 문자열을 저장할 메모리 할당.
+  // base길이 + 접미사 길이 + 널문자 1개
+  output_path = malloc(base_length + strlen(suffix) + 1);
+  if (output_path == NULL)
+  {
+    perror("메모리 할당 실패");
+    return NULL;
+  }
+
+  // 1. base부분 우선 결과 변수에 복사
+  strncpy(output_path, input_path, base_length);
+  // 마지막부분에 NULL문자 추가
+  output_path[base_length] = '\0';
+
+  // 2. _result.csv 접미사 연결
+  strcat(output_path, suffix);
+
+  return output_path;
+}
+
+bool save_schedule_to_csv(const char *input_path, const Employee *emp_list, const EmployeeStats *emp_stats, const ScheduleConfig *config, const GaResult result)
+{
+  bool is_success = false;
+  char schedule_temp[config->num_employees][config->num_days];
+
+  // 초기화
+  for (int emp = 0; emp < config->num_employees; emp++)
+  {
+    for (int day = 0; day < config->num_days; day++)
+    {
+      schedule_temp[emp][day] = '\0';
+    }
+  }
+
+  FILE *fp;
+  // 쓰기(Write)모드로 파일 열기
+  fp = fopen(input_path, "w");
+
+  if (fp == NULL)
+  {
+    perror("Error opening file");
+    // 파일을 읽지 못했을 경우 연, 월 0,0인 구조체 반환
+    return false;
+  }
+
+  fprintf(fp, "%d년 %d 월 근무표, Fitness: %lf\n", config->year, config->month, result.best_schedule.fitness);
+
+  // 각 근무자별 근무표를 enum에서 char 배열로 문자열 변환하여 저장
+  for (int coursor = 0; coursor < config->num_employees * config->num_days; coursor++)
+  {
+    int emp_no = coursor % config->num_employees;
+    int day = coursor / config->num_employees;
+    schedule_temp[emp_no][day] = shift_type_to_char(result.best_schedule.schedule[coursor]);
+  }
+
+  // 칼럼 설명줄 작성
+  fprintf(fp, "EmpNo, Name,");
+  for (int day = 0; day < config->num_days; day++)
+  {
+    fprintf(fp, "%d, ", day + 1);
+  }
+
+  fprintf(fp, "D, E, N, O, TotalWorkDay");
+  fprintf(fp, "\n");
+
+  // 각 근무자별 사번, 이름, 근무표 작성
+  for (int emp = 0; emp < config->num_employees; emp++)
+  {
+    fprintf(fp, "%d, %s, ", emp_list[emp].id, emp_list[emp].name);
+
+    for (int day = 0; day < config->num_days; day++)
+    {
+      fprintf(fp, "%c, ", schedule_temp[emp][day]);
+    }
+
+    fprintf(fp, "%d, %d, %d, %d, %d", emp_stats[emp].shift_counts[0],
+            emp_stats[emp].shift_counts[1],
+            emp_stats[emp].shift_counts[2],
+            emp_stats[emp].shift_counts[3],
+            emp_stats->total_work_days);
+
+    fprintf(fp, "\n");
+  }
+
+  // 파일 닫기
+  is_success = fclose(fp);
+
+  return !is_success;
 }
