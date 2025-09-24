@@ -1,6 +1,63 @@
 // src/month_config.c
 #include <stdlib.h>
+#include <stdbool.h>
 #include "schedule_config.h"
+
+static bool set_shiftrequirement(ShiftSetConfig *shiftconfig, int count, char *shift, int *max, int *min)
+{
+
+  ShiftRequirement *requirement = NULL;
+  requirement = malloc(sizeof(ShiftRequirement) * count);
+
+  if (requirement == NULL || shiftconfig == NULL)
+  {
+    free(shiftconfig->requirements);
+    free(shiftconfig);
+
+    return false;
+  }
+
+  shiftconfig->requirements = requirement;
+
+  shiftconfig->count = count;
+
+  for (int i = 0; i < count; i++)
+  {
+    requirement[i].code = shift[i];
+    requirement[i].max_employees = max[i];
+    requirement[i].min_employees = min[i];
+  }
+
+  return true;
+}
+
+static ShiftSetConfig *create_shift_requirements(int count, const char *shift, const int *max, const int *min)
+{
+  // 1. 껍데기 구조체(ShiftSetConfig)를 위한 메모리 할당
+  ShiftSetConfig *config = malloc(sizeof(ShiftSetConfig));
+  if (config == NULL)
+  {
+    return NULL;
+  }
+  // 2. 내부 배열(requirements)을 위한 메모리 할당
+  config->requirements = malloc(sizeof(ShiftRequirement) * count);
+  if (config->requirements == NULL)
+  {
+    free(config);
+    return NULL;
+  }
+  // 3. 모든 메모리 할당이 성공했으면, 값들을 채워넣습니다.
+  config->count = count;
+
+  for (int i = 0; i < count; i++)
+  {
+    config->requirements[i].code = shift[i];
+    config->requirements[i].max_employees = max[i];
+    config->requirements[i].min_employees = min[i];
+  }
+  // 4. 모든 값이 채워진, 완성된 객체의 포인터를 반환합니다.
+  return config;
+}
 
 // 윤년인지 확인하는 내부 함수 (static)
 static int is_leap_year(int year)
@@ -38,6 +95,10 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
     return NULL;
   }
 
+  config->shift_requirements = NULL;
+
+  config->shift_requirements->requirements = NULL;
+
   config->mutation_rate = 0.08;
 
   // 2. 전달받은 값과 계산된 값으로 구조체 초기화
@@ -74,4 +135,20 @@ ScheduleConfig *init_schedule_config(int year, int month, int num_employees)
   config->penalty_wight_night_off_off = 2500;
   config->positive_wight_night_night_off_off = 3500;
   return config;
+}
+
+// 생성(create) 함수와 짝을 이루는 해제(free) 함수 일부 동적 메모리를 사용하는 변수에 대한 메모리 해제
+void free_schedule_config(ScheduleConfig *config)
+{
+  if (config != NULL)
+  {
+    // shift_requirements 내부의 배열을 먼저 해제해야 함
+    if (config->shift_requirements != NULL)
+    {
+      free(config->shift_requirements->requirements);
+      free(config->shift_requirements);
+    }
+
+    free(config); // 마지막으로 껍데기 해제
+  }
 }

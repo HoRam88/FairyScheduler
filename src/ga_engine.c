@@ -379,6 +379,16 @@ static void crossover(const Schedule *parentA, const Schedule *parentB, Schedule
   memcpy(childB->schedule + crossover_point, parentA->schedule + crossover_point, (config->gene_length - crossover_point) * sizeof(ShiftType));
 }
 
+// 상위 10% 우선 교배시 사용할 단일 교배 함수
+static void crossover_single(const Schedule *parentA, const Schedule *parentB, Schedule *childA, const ScheduleConfig *config)
+{
+  int crossover_point = rand() % (config->gene_length - 1) + 1;
+  childA->fitness = 0.0;
+
+  memcpy(childA->schedule, parentA->schedule, crossover_point * sizeof(ShiftType));
+  memcpy(childA->schedule + crossover_point, parentB->schedule + crossover_point, (config->gene_length - crossover_point) * sizeof(ShiftType));
+}
+
 // 엘리트 보존 함수
 static void save_elite(const Schedule *now_generation, Schedule *next_generation, const ScheduleConfig *config)
 {
@@ -432,26 +442,63 @@ static void run_crossover_Do(Schedule *now_generation, Schedule *next_generation
   bool is_overlapped2;
   for (int idx = config->elite_count; idx < config->population_size - 1; idx += 2)
   {
-    index1 = select_parent_tournament(config, 10);
-    do
+
+    // 엘리트 보존모드 확인
+    int mode = 0;
+
+    if (idx < config->population_size / 10)
+      mode = 0;
+    else
+      mode = 1;
+
+    switch (mode)
     {
-      index2 = select_parent_tournament(config, 10);
+    case 0:
+      do
+      {
 
-      // index1, index2가 동일하다면 반복하여 다른 개체 2개를 선택할 것.
-    } while (index1 == index2);
+        // 10%개체와 랜덤 개체를 교배하여 하나씩 자식을 생성후, 돌연변이 적용.
+        index1 = select_parent_tournament(config, 10);
+        crossover_single(&now_generation[idx], &now_generation[index1], &next_generation[idx], config);
 
-    // printf("tournament result: %d, %d\n]n", index1, index2);
+        index2 = select_parent_tournament(config, 10);
+        crossover_single(&now_generation[idx + 1], &now_generation[index2], &next_generation[idx + 1], config);
 
-    do
-    {
-      crossover(&now_generation[index1], &now_generation[index2], &next_generation[idx], &next_generation[idx + 1], config);
-      mutate_individual(&next_generation[idx], config);
-      mutate_individual(&next_generation[idx + 1], config);
+        mutate_individual(&next_generation[idx], config);
+        mutate_individual(&next_generation[idx + 1], config);
 
-      is_overlapped1 = overlapped_detector(next_generation, idx + 1, config->gene_length);
-      is_overlapped2 = overlapped_detector(next_generation, idx + 2, config->gene_length);
-    } while (is_overlapped1 || is_overlapped2);
+        is_overlapped1 = overlapped_detector(next_generation, idx + 1, config->gene_length);
+        is_overlapped2 = overlapped_detector(next_generation, idx + 2, config->gene_length);
+      }
+
+      while (is_overlapped1 || is_overlapped2);
+      break;
+
+    case 1:
+      index1 = select_parent_tournament(config, 10);
+      do
+      {
+        index2 = select_parent_tournament(config, 10);
+
+        // index1, index2가 동일하다면 반복하여 다른 개체 2개를 선택할 것.
+      } while (index1 == index2);
+
+      // printf("tournament result: %d, %d\n]n", index1, index2);
+
+      do
+      {
+        crossover(&now_generation[index1], &now_generation[index2], &next_generation[idx], &next_generation[idx + 1], config);
+        mutate_individual(&next_generation[idx], config);
+        mutate_individual(&next_generation[idx + 1], config);
+
+        is_overlapped1 = overlapped_detector(next_generation, idx + 1, config->gene_length);
+        is_overlapped2 = overlapped_detector(next_generation, idx + 2, config->gene_length);
+      } while (is_overlapped1 || is_overlapped2);
+
+      break;
+    }
   }
+
   // printf("\nrun_crossover_section_end\n");
 }
 

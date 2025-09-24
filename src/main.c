@@ -85,6 +85,8 @@ int main(int argc, char *argv[])
   save_schedule_to_csv(output_path, loaded_employees, emp_stats, scheduleconfig, result);
 
   // 프로그램 종료 전 메모리 해제
+
+  free_schedule_config(scheduleconfig);
   free(scheduleconfig);
   free(loaded_employees);
 
